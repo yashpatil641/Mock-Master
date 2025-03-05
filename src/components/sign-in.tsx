@@ -10,7 +10,7 @@ export function SignIn() {
       className="space-y-6"
     >
       <label className="block">
-        <span className="block text-sm font-medium text-gray-700">Email</span>
+        <span className="block text-sm font-medium text-gray-400">Email</span>
         <input
           name="email"
           type="email"
@@ -20,7 +20,7 @@ export function SignIn() {
         />
       </label>
       <label className="block">
-        <span className="block text-sm font-medium text-gray-700">Password</span>
+        <span className="block text-sm font-medium text-gray-400">Password</span>
         <input
           name="password"
           type="password"
