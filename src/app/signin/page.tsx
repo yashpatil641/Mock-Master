@@ -12,7 +12,7 @@ export default function SignInPage() {
   return (
     <section className="py-10 min-h-screen flex flex-col ">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4 text-gray-800">Welcome to Our Platform</h1>
+        <h1 className="text-4xl font-bold mb-4 text-white">Welcome to Our Platform</h1>
         <p className="text-xl text-muted-foreground">Sign in to continue</p>
       </div>
       <GlowArea className="flex gap-8 items-center justify-center lg:py-20 flex-col lg:flex-row">
