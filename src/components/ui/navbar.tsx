@@ -19,16 +19,20 @@ export const FloatingNav = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
         className={cn(
-          "sticky top-0 z-50 mx-auto flex w-full max-w-6xl items-center justify-between rounded-full border border-white p-4",
+          "sticky top-0 z-[5000] mx-auto flex w-full max-w-6xl items-center justify-between rounded-full border border-black ring-2 ring-black/100 shadow-[0_0_20px_rgba(0,123,255,0.8)] p-4",
           className
         )}
       >
         <div className="flex flex-1 justify-evenly items-center gap-6">
           {navItems.map((navItem, idx) => (
-            <motion.div key={idx} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <motion.div
+              key={idx}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <Link
                 href={navItem.link}
-                className="flex items-center space-x-2 text-base font-medium text-white hover:text-gray-300"
+                className="flex items-center space-x-2 text-base font-medium text-white hover:text-blue-500"
               >
                 <span>{navItem.name}</span>
               </Link>
@@ -39,7 +43,7 @@ export const FloatingNav = ({
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center space-x-2 rounded-full border border-white px-6 py-3 text-base font-medium text-white hover:bg-white/10"
+            className="flex items-center space-x-2 rounded-full border border-black px-6 py-3 text-base font-medium text-white shadow-[0_0_10px_rgba(0,123,255,0.8)] hover:bg-black/10"
           >
             <Link href={"/signin"}>LogIn</Link>
           </motion.button>
