@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { FloatingNav } from "@/components/ui/navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,19 +21,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const navItems = [
+    { name: "Home", link: "/" },
+    { name: "About", link: "/about" },
+    { name: "Contact", link: "/contact" },
+    { name: "Create", link: "/contact" },
+  ];
+
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${geistSans.className} antialiased`}
-      >
-
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-        >
+      <body className={`${geistSans.variable} ${geistMono.variable} ${geistSans.className} antialiased`}>
+        <FloatingNav navItems={navItems} />
+        <ThemeProvider attribute="class" defaultTheme="system">
           {children}
         </ThemeProvider>
       </body>
