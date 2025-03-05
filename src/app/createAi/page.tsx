@@ -24,7 +24,7 @@ export default function CreateNewMockInterview() {
 
         <GlowArea className="flex gap-8 items-center justify-center lg:py-20 flex-col lg:flex-row">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Glow color="purple" className="rounded-xl transition-transform hover:scale-105 shadow-lg">
+          <Glow color="blue" className="rounded-xl transition-transform hover:scale-105 shadow-lg">
               <Card className="w-full h-96  rounded-xl shadow-2xl flex flex-col justify-between p-6">
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl font-bold">New Mock Interview</CardTitle>
@@ -67,10 +67,10 @@ export default function CreateNewMockInterview() {
         </GlowArea>
 
         <h2 className="text-3xl font-bold text-white text-center mb-6">Your Previous Interviews</h2>
-        <GlowArea color="bright-orange">
+        
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {previousInterviews.map((interview) => (
-              <Glow key={interview.id} color="orange" className="rounded-xl transition-transform hover:scale-105 shadow-lg">
+              <Glow key={interview.id}  className="rounded-xl transition-transform hover:scale-105 shadow-lg">
                 <Card className="w-full h-80  rounded-xl shadow-2xl flex flex-col justify-between p-6">
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl font-bold">Interview {interview.id}</CardTitle>
@@ -88,7 +88,7 @@ export default function CreateNewMockInterview() {
               </Glow>
             ))}
           </div>
-        </GlowArea>
+        
       </div>
     </div>
   );
