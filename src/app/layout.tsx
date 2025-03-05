@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FloatingNav } from "@/components/ui/navbar";
-
+import { Component } from "@/components/ui/footer";
+import { Separator } from "@radix-ui/react-dropdown-menu";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system">
           {children}
         </ThemeProvider>
+        <Component/>
       </body>
     </html>
   );
