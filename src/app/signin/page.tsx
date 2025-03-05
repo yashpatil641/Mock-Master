@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
   CardContent,
+  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -17,16 +18,16 @@ export default function SignInPage() {
       </div>
       <GlowArea className="flex gap-8 items-center justify-center lg:py-20 flex-col lg:flex-row">
         <Glow color="pink" className="rounded-xl transition-transform hover:scale-105 shadow-lg">
-          <Card className="w-80 rounded-xl shadow-2xl p-8">
-            <CardHeader className="text-center">
-              <Button className="mb-4 bg-gray-300">
-                <CardTitle className="text-3xl font-bold  ">Sign In</CardTitle>
+          <div className="w-80 rounded-xl shadow-2xl p-8">
+            <div className="text-center">
+              <Button className="mb-4">
+                <div className="text-3xl font-bold">Sign In</div>
               </Button>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div>
               <SignIn />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Glow>
       </GlowArea>
     </section>
