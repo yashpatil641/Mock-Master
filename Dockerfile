@@ -1,13 +1,16 @@
 # Base image
 FROM node:18-alpine AS base
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Set working directory
 WORKDIR /app
 
 # Install dependencies only when needed
 FROM base AS deps
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -21,7 +24,7 @@ COPY . .
 # ENV NEXT_TELEMETRY_DISABLED 1
 
 # Build the application
-RUN npm run build
+RUN pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
