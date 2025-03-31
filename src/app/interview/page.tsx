@@ -47,7 +47,7 @@ export default function InterviewPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      setQuestionsAvailable(false); 
+      setQuestionsAvailable(false);
       const questions = await getIntervewQuestions(InterviewInfo);
       setQuestions(questions);
       console.log(questions);
@@ -235,7 +235,7 @@ export default function InterviewPage() {
                 className="bg-gray-800/20 backdrop-blur-3xl p-8 rounded-2xl border border-white/10 shadow-xl"
               >
                 <h1 className="font-display text-3xl font-bold text-white mb-2">
-                  {InterviewInfo.title}
+                  {InterviewInfo.title.charAt(0).toUpperCase() + InterviewInfo.title.slice(1)}
                 </h1>
                 <p className="text-slate-300 mb-6">
                   {InterviewInfo.position} | Experience - {InterviewInfo.experience}
@@ -246,7 +246,7 @@ export default function InterviewPage() {
                     Job Description
                   </h3>
                   <p className="text-slate-300 text-md">
-                    {InterviewInfo.Description}
+                    {InterviewInfo.Description.charAt(0).toUpperCase() + InterviewInfo.title.slice(1)}
                   </p>
                 </div>
 
@@ -298,8 +298,17 @@ export default function InterviewPage() {
                     onClick={startInterview}
                     className={`text-white gap-2 px-6 py-6 text-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700`}
                   >
-                    { QuestionsAvailable  ? "Start Interview" : "Loading Questions" }
-                    <ArrowRight size={18} />
+                    {!QuestionsAvailable ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin mr-2" />
+                        Loading Questions
+                      </>
+                    ) : (
+                      <>
+                        Start Interview
+                        <ArrowRight size={18} />
+                      </>
+                    )}
                   </Button>
                 </div>
               </motion.div>
@@ -323,7 +332,12 @@ export default function InterviewPage() {
                     Expected: ~{Math.round(currentQuestion.expectedDuration / 60)} min
                   </div>
                 </div>
-                <Progress value={progress} className="h-1 bg-white/10" indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-600" />
+                <div className="relative h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-cyan-500 to-purple-600 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
 
                 {/* Question Card */}
                 <AnimatePresence mode="wait">

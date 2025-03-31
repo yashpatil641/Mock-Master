@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Template {
+  id              String     @id @default(uuid())
+  name            String
+  role            String
+  experienceLevel String
+  description     String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+
+
+model Interview {
+  id        Int        @id @default(autoincrement())
+  title     String
+  company   String
+  position  String
+  questions Question[] // An interview can have multiple questions
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Question {
+  id               Int       @id @default(autoincrement())
+  text             String
+  expectedDuration Int?      // Store approximate time (in seconds) for the answer
+  tips             String?
+  interview        Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  interviewId      Int
+  answers          Answer[]  // Each question can have multiple answers
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Answer {
+  id         Int       @id @default(autoincrement())
+  transcript String?   // Capture user’s response
+  duration   Int?      // Recording duration in seconds
+  question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}

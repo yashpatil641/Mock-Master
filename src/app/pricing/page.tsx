@@ -12,14 +12,14 @@ import { BookCheck, Sparkles, Calendar, Users, Clock, Star, Zap, Trophy } from "
 
 export default function Pricing() {
   return (
-    <section className="py-10">
+    <section className="py-10 mt-20 ">
       <div className="text-center">
         <h1 className="text-4xl font-bold mb-4">AI-Powered Interview Preparation</h1>
         <p className="text-xl text-muted-foreground">Choose the perfect plan for your interview success</p>
       </div>
       <GlowArea className="flex gap-8 items-center justify-center lg:py-20 flex-col lg:flex-row">
-        <Glow color="pink" className="rounded-xl  transition-transform">
-          <Card className="w-72 rounded-xl h-96">
+        <Glow color="lightblue" className="rounded-xl  transition-transform ">
+          <Card className="w-72 rounded-xl h-96 bg-black/35">
             <CardHeader>
               <CardTitle>Starter Plan</CardTitle>
               <CardDescription className="max-w-sm">
@@ -49,8 +49,8 @@ export default function Pricing() {
           </Card>
         </Glow>
 
-        <Glow color="pink" className="rounded-xl transition-transform">
-          <Card className="max-w-md rounded-xl border-2">
+        <Glow color="lightblue" className="rounded-xl transition-transform">
+          <Card className="max-w-md rounded-xl border-2 bg-black/35">
             <CardHeader>
               <div className="">MOST POPULAR</div>
               <CardTitle>Pro Plan</CardTitle>
@@ -89,8 +89,8 @@ export default function Pricing() {
           </Card>
         </Glow>
 
-        <Glow color="pink" className="rounded-xl transition-transform">
-          <Card className="max-w-sm rounded-xl h-96">
+        <Glow color="lightblue" className="rounded-xl transition-transform">
+          <Card className="max-w-sm rounded-xl h-96 bg-black/35">
             <CardHeader>
               <CardTitle>Enterprise Plan</CardTitle>
               <CardDescription className="max-w-sm">

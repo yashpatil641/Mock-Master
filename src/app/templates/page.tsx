@@ -1,22 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Dialog, DialogContent, DialogHeader,
-  DialogTitle, DialogTrigger
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent, SelectItem, SelectTrigger, SelectValue
-} from "@/components/ui/select";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-// , Card, Input, Label
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { getTemplates, createTemplate, deleteTemplate } from "./actions";
 
 interface Template {
   id: string;
@@ -27,34 +21,16 @@ interface Template {
   createdAt: Date;
 }
 
-export default function TemplatesPage() {
-  const [templates, setTemplates] = useState<Template[]>([
-    {
-      id: "1",
-      name: "Frontend Developer Interview",
-      role: "Frontend Developer",
-      experienceLevel: "3-5 years",
-      description: "Template for interviewing mid-level frontend developers with React experience",
-      createdAt: new Date()
-    },
-    {
-      id: "2",
-      name: "Backend Engineer Interview",
-      role: "Backend Engineer",
-      experienceLevel: "5+ years",
-      description: "Template for interviewing senior backend engineers with Node.js and database expertise",
-      createdAt: new Date()
-    },
-    {
-      id: "3",
-      name: "Full Stack Developer Interview",
-      role: "Full Stack Developer",
-      experienceLevel: "2-4 years",
-      description: "A comprehensive template for assessing full stack development skills",
-      createdAt: new Date()
-    }
-  ]);
+// Add this interface to define the return type from getTemplates
+interface TemplatesResponse {
+  success: boolean;
+  templates?: Template[];
+  error?: string;
+}
 
+export default function TemplatesPage() {
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [newTemplate, setNewTemplate] = useState({
     name: "",
     role: "",
@@ -63,6 +39,34 @@ export default function TemplatesPage() {
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load templates when the component mounts
+  useEffect(() => {
+    async function loadTemplates() {
+      setIsLoading(true);
+      try {
+        const result = await getTemplates() as TemplatesResponse;
+        if (result.success && result.templates) {
+          // Added a check for result.templates
+          const templatesWithDates = result.templates.map(template => ({
+            ...template,
+            createdAt: new Date(template.createdAt)
+          }));
+          setTemplates(templatesWithDates);
+        } else {
+          toast.error(result.error || "Failed to load templates");
+        }
+      } catch (error) {
+        console.error("Error loading templates:", error);
+        toast.error("An unexpected error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTemplates();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -73,21 +77,64 @@ export default function TemplatesPage() {
     setNewTemplate(prev => ({ ...prev, [field]: value }));
   };
 
-  const createTemplate = () => {
-    const template = {
-      id: Date.now().toString(),
-      ...newTemplate,
-      createdAt: new Date()
-    };
-    setTemplates(prev => [template, ...prev]);
-    setNewTemplate({
-      name: "",
-      role: "",
-      experienceLevel: "",
-      description: ""
-    });
+  const handleCreateTemplate = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await createTemplate(newTemplate);
 
-    setDialogOpen(false);
+      if (result.success) {
+        toast.success("Template created successfully");
+        // Add the new template to the UI with the correct date format
+        setTemplates(prev => {
+          if (!result.template) return prev;
+          
+          return [
+            {
+              ...result.template,
+              createdAt: new Date(result.template.createdAt)
+            } as Template,
+            ...prev
+          ];
+        });
+
+        // Reset the form
+        setNewTemplate({
+          name: "",
+          role: "",
+          experienceLevel: "",
+          description: ""
+        });
+
+        // Close the dialog
+        setDialogOpen(false);
+      } else {
+        toast.error(result.error || "Failed to create template");
+      }
+    } catch (error) {
+      console.error("Error creating template:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (confirm("Are you sure you want to delete this template?")) {
+      try {
+        const result = await deleteTemplate(id);
+
+        if (result.success) {
+          toast.success("Template deleted successfully");
+          // Remove the deleted template from the UI
+          setTemplates(prev => prev.filter(template => template.id !== id));
+        } else {
+          toast.error(result.error || "Failed to delete template");
+        }
+      } catch (error) {
+        console.error("Error deleting template:", error);
+        toast.error("An unexpected error occurred");
+      }
+    }
   };
 
   return (
@@ -132,13 +179,13 @@ export default function TemplatesPage() {
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="frontend">Frontend Developer</SelectItem>
-                    <SelectItem value="backend">Backend Developer</SelectItem>
-                    <SelectItem value="fullstack">Full Stack Developer</SelectItem>
-                    <SelectItem value="mobile">Mobile Developer</SelectItem>
-                    <SelectItem value="devops">DevOps Engineer</SelectItem>
-                    <SelectItem value="qa">QA Engineer</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="Frontend Developer">Frontend Developer</SelectItem>
+                    <SelectItem value="Backend Developer">Backend Developer</SelectItem>
+                    <SelectItem value="Full Stack Developer">Full Stack Developer</SelectItem>
+                    <SelectItem value="Mobile Developer">Mobile Developer</SelectItem>
+                    <SelectItem value="DevOps Engineer">DevOps Engineer</SelectItem>
+                    <SelectItem value="QA Engineer">QA Engineer</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -155,11 +202,11 @@ export default function TemplatesPage() {
                     <SelectValue placeholder="Years of experience" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0-1">0-1 years</SelectItem>
-                    <SelectItem value="1-3">1-3 years</SelectItem>
-                    <SelectItem value="3-5">3-5 years</SelectItem>
-                    <SelectItem value="5+">5+ years</SelectItem>
-                    <SelectItem value="8+">8+ years</SelectItem>
+                    <SelectItem value="0-1 years">0-1 years</SelectItem>
+                    <SelectItem value="1-3 years">1-3 years</SelectItem>
+                    <SelectItem value="3-5 years">3-5 years</SelectItem>
+                    <SelectItem value="5+ years">5+ years</SelectItem>
+                    <SelectItem value="8+ years">8+ years</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -178,45 +225,75 @@ export default function TemplatesPage() {
               </div>
 
               <div className="flex justify-end mt-4">
-                <Button onClick={createTemplate}>Create Template</Button>
+                <Button onClick={handleCreateTemplate} disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Template"
+                  )}
+                </Button>
               </div>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {templates.map((template) => (
-          <Card key={template.id} className="p-6 cursor-pointer hover:shadow-lg hover:bg-gray-800/50 bg-gray-800/30 transition-shadow">
-            <h2 className="text-xl font-semibold mb-2">{template.name}</h2>
-            <div className="flex flex-wrap gap-2 mb-3">
-              <span className="bg-blue-200 text-blue-600 text-sm font-semibold px-2.5 py-0.5 rounded-full">
-                {template.role}
-              </span>
-              <span className="bg-green-200 text-black/90 text-sm font-semibold px-2.5 py-0.5 rounded-full cursor-pointer">
-                {template.experienceLevel}
-              </span>
-            </div>
-            <p className="text-gray-300 text-sm mb-4">{template.description}</p>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-400">
-                Created {template.createdAt.toLocaleDateString()}
-              </span>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : templates.length === 0 ? (
+        <div className="text-center py-20 text-gray-400">
+          <p>No templates available. Create your first template!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {templates.map((template) => (
+            <Card key={template.id} className="p-6 hover:shadow-lg hover:bg-gray-800/50 bg-gray-800/30 transition-shadow">
+              <h2 className="text-xl font-semibold mb-2">{template.name}</h2>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className="bg-blue-200 text-blue-600 text-sm font-semibold px-2.5 py-0.5 rounded-full">
+                  {template.role}
+                </span>
+                <span className="bg-green-200 text-black/90 text-sm font-semibold px-2.5 py-0.5 rounded-full">
+                  {template.experienceLevel}
+                </span>
+              </div>
+              <p className="text-gray-300 text-sm mb-4">{template.description}</p>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-400">
+                  Created {template.createdAt.toLocaleDateString()}
+                </span>
 
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <Link href={`/interview?title=${encodeURIComponent(template.name)}&position=${encodeURIComponent(template.role)}&experience=${encodeURIComponent(template.experienceLevel)}&description=${encodeURIComponent(template.description)}`}>
-                  Use Template
-                </Link>
-              </Button>
+                <div className="flex gap-2 items-center justify-center">
+                  <Button
+                  className="bg-black/70 hover:bg-black/40"
+                    variant="outline"
+                    size="default"
+                    asChild
+                  >
+                    <Link href={`/interview?title=${encodeURIComponent(template.name)}&position=${encodeURIComponent(template.role)}&experience=${encodeURIComponent(template.experienceLevel)}&description=${encodeURIComponent(template.description)}`}>
+                      Use Template
+                    </Link>
+                  </Button>
 
-            </div>
-          </Card>
-        ))}
-      </div>
+                  <Button
+                    className="bg-red-500/70 hover:bg-red-500/60"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteTemplate(template.id)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
