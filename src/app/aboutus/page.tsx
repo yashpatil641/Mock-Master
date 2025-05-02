@@ -31,7 +31,7 @@ export default function AboutMockMaster() {
     <section className="py-12 px-4 max-w-6xl mx-auto">
       {/* Hero Section */}
       <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-4 mt-4">About Mock Master</h1>
+        <h1 className="text-4xl font-bold mb-4 mt-10">About Mock Master</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           The intelligent interview preparation platform designed by students, for students
         </p>
