@@ -5,6 +5,11 @@ import { Navbar } from "@/components/navbar";
 import Footer from "@/components/footer/page";
 import { Inter, Outfit, Space_Grotesk } from 'next/font/google';
 import GradientBg from "@/components/gradient_bg/page";
+import { NavbarWrapper } from "@/components/nav/navbar-wrapper";
+
+
+
+
 
 // Primary font for body text
 export const inter = Inter({
@@ -44,7 +49,7 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="system"
         >
-          <Navbar />
+          <NavbarWrapper />
           <GradientBg />
           {children}
           <Footer />

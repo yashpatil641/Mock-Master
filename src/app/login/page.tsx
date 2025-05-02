@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Github, Mail, Loader2 } from "lucide-react";
 import { z } from "zod";
+import SignIn from "@/components/sign-in";
+import { githubSignIn } from "@/lib/actions";
 
 // Form validation schema
 const signInSchema = z.object({
@@ -19,7 +21,7 @@ const signInSchema = z.object({
 type SignInFormData = z.infer<typeof signInSchema>;
 
 // Generate stable particle data outside component
-const createParticles = (count) => {
+const createParticles = (count: number) => {
   return Array.from({ length: count }).map(() => ({
     size: Math.random() * 8 + 2,
     initialX: `${Math.random() * -10000}%`,
@@ -69,11 +71,11 @@ export default function SignInPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
+
     // Simulating API call
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -89,7 +91,7 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden mt-18 mb-60">
-      
+
       {/* Fixed floating particles effect */}
       {particles.map((particle, i) => (
         <motion.div
@@ -120,17 +122,17 @@ export default function SignInPage() {
       <div className="w-full max-w-md">
         {/* Logo and branding */}
         <Link href="/" className="block mb-8 text-center">
-          <motion.div 
+          <motion.div
             className="inline-block"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ 
+            transition={{
               type: "spring",
               stiffness: 300,
               damping: 20
             }}
           >
-            
+
           </motion.div>
         </Link>
 
@@ -139,7 +141,7 @@ export default function SignInPage() {
           className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-lg shadow-xl overflow-hidden"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ 
+          transition={{
             delay: 0.1,
             duration: 0.5,
             ease: [0.22, 1, 0.36, 1]
@@ -151,14 +153,16 @@ export default function SignInPage() {
 
             {/* Social sign-in options */}
             <div className="grid grid-cols-2 gap-4 mb-8">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 bg-white/10 hover:bg-white/15 transition-colors rounded-lg border border-white/10 text-white"
-              >
-                <Github size={18} />
-                <span>GitHub</span>
-              </motion.button>
+              <form action={githubSignIn}>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white/10 hover:bg-white/15 transition-colors rounded-lg border border-white/10 text-white"
+                >
+                  <Github size={18} />
+                  <button type="submit">GitHub</button>
+                  </motion.div>
+              </form>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -168,123 +172,12 @@ export default function SignInPage() {
                 <span>Google</span>
               </motion.button>
             </div>
-
-            <div className="flex items-center gap-4 mb-8">
-              <div className="h-px bg-white/10 flex-grow"></div>
-              <span className="text-slate-400 text-sm">or continue with</span>
-              <div className="h-px bg-white/10 flex-grow"></div>
-            </div>
-
-            {/* Sign-in form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300">
-                  Email
-                </label>
-                <div className="relative">
-                  <motion.div 
-                    className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
-                    initial={{ opacity: 0.5 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <Mail size={16} className="text-slate-400" />
-                  </motion.div>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-cyan-500"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-red-400 text-xs mt-1">{errors.email}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-300">
-                    Password
-                  </label>
-                  <Link href="/forgot-password" className="text-xs text-cyan-400 hover:text-cyan-300">
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="•••••••"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-cyan-500"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-slate-400 hover:text-white"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-red-400 text-xs mt-1">{errors.password}</p>
-                )}
-              </div>
-
-              <div className="flex items-center">
-                <Checkbox
-                  id="remember-me"
-                  checked={formData.rememberMe}
-                  onCheckedChange={(checked) => handleInputChange("rememberMe", checked === true)}
-                  className="border-white/20 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-300">
-                  Remember me for 30 days
-                </label>
-              </div>
-
-              <div>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full gap-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-medium py-2.5"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" /> 
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      Sign in
-                      <ArrowRight size={18} />
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
           </div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="px-8 py-4 bg-gradient-to-r from-slate-800/50 to-slate-900/50 backdrop-blur-md border-t border-white/5 flex justify-center"
-          >
-            <p className="text-sm text-slate-400">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-cyan-400 hover:text-cyan-300 font-medium">
-                Sign up
-              </Link>
-            </p>
-          </motion.div>
         </motion.div>
 
         {/* Privacy notice */}
-        <motion.p 
+        <motion.p
           className="text-sm text-slate-500 text-center mt-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

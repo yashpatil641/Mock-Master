@@ -6,6 +6,7 @@ import HeroSection from "@/components/hero_section/page";
 import ReviewsSection from "@/components/reviews_section/page";
 
 export default function Home() {
+
   return (
     <div className="min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-800 via-indigo-900 to-slate-950 mt-18">
 

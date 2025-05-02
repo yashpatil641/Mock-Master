@@ -2,10 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // Add this import
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown, Mic, FileText, Home, BookOpen } from "lucide-react";
+import { Menu, X, ChevronDown, Mic, FileText, Home, BookOpen, LogOut, User, Settings } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { githubSignOut } from "@/lib/actions";
 
 // Updated nav items with more relevant links
 const NavItems = [
@@ -26,11 +36,11 @@ const NavItems = [
   }
 ];
 
-export function Navbar() {
+export function Navbar({ user }: { user: { name?: string | null; image?: string | null } | null }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const pathname = usePathname(); // Get current path
+  const pathname = usePathname();
 
   // Check if a link is active
   const isActive = (href: string) => {
@@ -75,8 +85,6 @@ export function Navbar() {
           <div className="font-bold text-2xl flex items-center">
             <span className="font-display text-white">Mock</span>
             <span className="font-display bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">Master</span>
-
-
           </div>
         </Link>
 
@@ -148,14 +156,63 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Auth Buttons */}
+        {/* Auth Buttons or User Profile */}
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" asChild className="text-slate-300 hover:text-white hover:bg-white/5">
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button asChild className="bg-gradient-to-r from-cyan-500/80 to-blue-600/80 hover:from-cyan-500 hover:to-blue-600 text-white border-none font-semibold">
-            <Link href="/signup">Sign up</Link>
-          </Button>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-colors">
+                  <div className="flex items-center gap-2 px-2 py-1">
+                    <span className="text-sm text-white">{user.name}</span>
+                    {user.image ? (
+                      <div className="h-8 w-8 rounded-full overflow-hidden border border-white/20">
+                        <Image
+                          src={user.image}
+                          alt={user.name || "User profile"}
+                          width={32}
+                          height={32}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {user.name?.charAt(0) || "U"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-slate-900/95 backdrop-blur-lg border-slate-800 text-white">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-slate-700" />
+                <DropdownMenuItem className="hover:bg-white/10 focus:bg-white/10 cursor-pointer">
+                  <User size={16} className="mr-2" /> Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="hover:bg-white/10 focus:bg-white/10 cursor-pointer">
+                  <Settings size={16} className="mr-2" /> Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-slate-700" />
+                <form action={githubSignOut} method="post">
+                  <DropdownMenuItem className="hover:bg-white/10 focus:bg-white/10 cursor-pointer text-red-400 hover:text-red-300" asChild>
+                    <button className="w-full flex items-center">
+                      <LogOut size={16} className="mr-2" /> Sign out
+                    </button>
+                  </DropdownMenuItem>
+                </form>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" asChild className="text-slate-300 hover:text-white hover:bg-white/5">
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button asChild className="bg-gradient-to-r from-cyan-500/80 to-blue-600/80 hover:from-cyan-500 hover:to-blue-600 text-white border-none font-semibold">
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -177,6 +234,30 @@ export function Navbar() {
               className="fixed inset-0 z-40 bg-slate-950/98 backdrop-blur-lg md:hidden"
             >
               <div className="flex flex-col h-full pt-20 px-6 pb-6">
+                {/* User info in mobile menu */}
+                {user && (
+                  <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-white/5 rounded-lg">
+                    {user.image ? (
+                      <Image
+                        src={user.image}
+                        alt={user.name || "User"}
+                        width={40}
+                        height={40}
+                        className="rounded-full border border-white/20"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {user.name?.charAt(0) || "U"}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-white font-medium">{user.name}</div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-4">
                   {NavItems.map((item) => (
                     <div key={item.name}>
@@ -246,12 +327,22 @@ export function Navbar() {
                 </div>
 
                 <div className="mt-auto border-t border-slate-800 pt-6 flex flex-col gap-3">
-                  <Button variant="outline" asChild className="w-full border-slate-700 text-slate-300 hover:text-white hover:border-slate-500">
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>
-                  </Button>
-                  <Button asChild className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-none">
-                    <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
-                  </Button>
+                  {user ? (
+                    <form action="/api/auth/signout" method="post">
+                      <Button variant="outline" type="submit" className="w-full border-slate-700 text-red-400 hover:text-red-300 hover:border-red-700 justify-start gap-2">
+                        <LogOut size={18} /> Sign out
+                      </Button>
+                    </form>
+                  ) : (
+                    <>
+                      <Button variant="outline" asChild className="w-full border-slate-700 text-slate-300 hover:text-white hover:border-slate-500">
+                        <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>
+                      </Button>
+                      <Button asChild className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-none">
+                        <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>Sign up</Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

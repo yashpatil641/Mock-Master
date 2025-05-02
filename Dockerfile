@@ -2,61 +2,62 @@
 FROM node:18-alpine AS base
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.6.2
 
 # Set working directory
 WORKDIR /app
 
-# Install dependencies only when needed
+# Install dependencies with proper configuration
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
 
-# Rebuild the source code only when needed
+# Configure pnpm to use node-linker=hoisted to fix Next.js path issues
+RUN echo "node-linker=hoisted" > .npmrc && \
+    pnpm install --frozen-lockfile
+
+# Build the application
 FROM base AS builder
 WORKDIR /app
+
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Next.js collects completely anonymous telemetry data about general usage
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line to disable telemetry during the build
-# ENV NEXT_TELEMETRY_DISABLED 1
+# Set environment variables
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
 
 # Build the application
-RUN pnpm build
+RUN pnpm exec next build
+# RUN pnpm dev
 
-# Production image, copy all the files and run next
+# Production image
 FROM base AS runner
 WORKDIR /app
 
+# Set environment variables
 ENV NODE_ENV production
-# Uncomment the following line to disable telemetry during runtime
-# ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED 1
 
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Set up application directories
 COPY --from=builder /app/public ./public
-
-# Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
+# Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Switch to non-root user
 USER nextjs
 
-# Environment variables for API keys (use ARG for build-time variables)
-# These should be provided at runtime in production
-ENV GEMINI_API_KEY=""
-
+# Expose port
 EXPOSE 3000
-
 ENV PORT 3000
 
-# Command to run the application
+# Start the application
 CMD ["node", "server.js"]
