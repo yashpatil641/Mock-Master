@@ -54,7 +54,7 @@ export default function AboutMockMaster() {
                   <p className="mb-4">
                     Mock Master is an advanced AI-powered interview preparation platform developed at IIITDMJ. 
                     Our application simulates realistic interview experiences, provides personalized feedback, 
-                    and helps students master the skills needed to excel in technical and non-technical interviews.
+                    and helps students master the skills needed to excel in technical and non-technical interview.
                   </p>
                   <p>
                     Whether you're preparing for a software engineering role, an electronics position, 
