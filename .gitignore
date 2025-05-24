@@ -30,8 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files - be more specific
+.env
+.env.local
+.env.development
+.env.production
+# Allow .env.example to be committed
 
 # vercel
 .vercel
@@ -39,4 +43,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# history
 .history
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Prisma
+prisma/migrations/*
+!prisma/migrations/migration_lock.toml
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

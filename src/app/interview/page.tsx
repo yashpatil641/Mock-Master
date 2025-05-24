@@ -1,10 +1,11 @@
 "use client";
-import { useState, useRef, useEffect, use } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Toaster, toast } from "sonner";
-import { useSearchParams } from "next/navigation"; // Add this import
+import { redirect, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react"
 
 import {
   Briefcase,
@@ -19,9 +20,7 @@ import {
 import Link from "next/link";
 import LiveTranscription from "@/components/live_transcript/page";
 import InterviewResult from "@/components/interview_result/page";
-import { getIntervewQuestions, analyzeAnswers } from "./actions"; // Add analyzeAnswers import
-
-
+import { getIntervewQuestions, analyzeAnswers } from "./actions";
 
 type Questions = {
   id: number;
@@ -33,9 +32,15 @@ type Questions = {
 // Interview states
 type InterviewState = "intro" | "inProgress" | "processingAnswers" | "completed";
 
-export default function InterviewPage() {
+// Create a separate component for the interview content
+function InterviewContent() {
   // Get the query parameters
   const searchParams = useSearchParams();
+  const { data: session } = useSession()
+
+  if (!session?.user) {
+    redirect('/login');
+  }
 
   // Extract template info from query parameters
   const InterviewInfo = {
@@ -44,17 +49,6 @@ export default function InterviewPage() {
     experience: searchParams.get("experience") || "Not Specified",
     Description: searchParams.get("description") || "No description provided for this interview."
   };
-
-  useEffect(() => {
-    const loadData = async () => {
-      setQuestionsAvailable(false);
-      const questions = await getIntervewQuestions(InterviewInfo);
-      setQuestions(questions);
-      console.log(questions);
-      setQuestionsAvailable(true);
-    }
-    loadData();
-  }, [])
 
   // State management
   const [QuestionsAvailable, setQuestionsAvailable] = useState(false);
@@ -148,10 +142,6 @@ export default function InterviewPage() {
     }
   };
 
-
-
-
-
   // Start the interview
   const startInterview = () => {
     setState("inProgress");
@@ -159,7 +149,6 @@ export default function InterviewPage() {
       description: "Good luck! Answer each question thoughtfully.",
     });
   };
-
 
   const Moving_to_next_question = async () => {
     // If this was the last question, process all answers
@@ -195,8 +184,6 @@ export default function InterviewPage() {
     }
   };
 
-
-
   // Add this useEffect near your other hooks at the top of the component
   // This will log all answers when the interview is completed
 
@@ -221,7 +208,6 @@ export default function InterviewPage() {
       <Toaster position="top-right" theme="dark" closeButton richColors />
 
       <div className="min-h-screen py-8 px-4 sm:px-6 relative overflow-hidden mt-30">
-
         <div className="max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
             {/* Introduction Screen */}
@@ -478,6 +464,7 @@ export default function InterviewPage() {
                 </AnimatePresence>
               </motion.div>
             )}
+
             {/* Results Screen - Now handles both processing and completed states */}
             {(state === "processingAnswers" || state === "completed") && (
               <InterviewResult
@@ -492,5 +479,30 @@ export default function InterviewPage() {
         </div>
       </div>
     </>
+  );
+}
+
+// Loading fallback component
+function InterviewLoading() {
+  return (
+    <div className="min-h-screen py-8 px-4 sm:px-6 relative overflow-hidden mt-30">
+      <div className="max-w-4xl mx-auto flex items-center justify-center">
+        <div className="bg-gray-800/20 backdrop-blur-3xl p-8 rounded-2xl border border-white/10 shadow-xl">
+          <div className="flex items-center gap-4">
+            <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+            <span className="text-white">Loading interview...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function InterviewPage() {
+  return (
+    <Suspense fallback={<InterviewLoading />}>
+      <InterviewContent />
+    </Suspense>
   );
 }

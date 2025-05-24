@@ -7,45 +7,101 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Your existing relations
+  templates     Template[]
+  interviews    Interview[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
 
 model Template {
-  id              String     @id @default(uuid())
+  id              String   @id @default(uuid())
   name            String
   role            String
   experienceLevel String
   description     String
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 }
-
-
 
 model Interview {
   id        Int        @id @default(autoincrement())
   title     String
   company   String
   position  String
-  questions Question[] // An interview can have multiple questions
+  questions Question[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 }
 
 model Question {
   id               Int       @id @default(autoincrement())
   text             String
-  expectedDuration Int?      // Store approximate time (in seconds) for the answer
+  expectedDuration Int?
   tips             String?
   interview        Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
   interviewId      Int
-  answers          Answer[]  // Each question can have multiple answers
+  answers          Answer[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
 
 model Answer {
   id         Int       @id @default(autoincrement())
-  transcript String?   // Capture user’s response
-  duration   Int?      // Recording duration in seconds
+  transcript String?
+  duration   Int?
   question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
   questionId Int
   createdAt  DateTime  @default(now())

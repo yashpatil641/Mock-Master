@@ -6,7 +6,8 @@ import Footer from "@/components/footer/page";
 import { Inter, Outfit, Space_Grotesk } from 'next/font/google';
 import GradientBg from "@/components/gradient_bg/page";
 import { NavbarWrapper } from "@/components/nav/navbar-wrapper";
-
+import SessionProviderWrapper from '../components/SessionProviderWrapper';
+import { AuthProvider } from "@/components/AuthProvider";
 
 
 
@@ -45,15 +46,19 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${outfit.variable} ${spaceGrotesk.variable}`}>
       <body className={`font-sans antialiased`}>
+
+        <SessionProviderWrapper>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
         >
+          <AuthProvider/>
           <NavbarWrapper />
           <GradientBg />
           {children}
           <Footer />
         </ThemeProvider>
+        </SessionProviderWrapper>
       </body>
     </html>
   );

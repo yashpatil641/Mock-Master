@@ -1,5 +1,7 @@
+
 import { Glow, GlowArea } from "@/components/glow";
 import { Button } from "@/components/ui/button";
+import { auth } from "../../../auth";
 import {
   CardFooter,
   Card,
@@ -9,8 +11,12 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { BookCheck, Sparkles, Calendar, Users, Clock, Star, Zap, Trophy } from "lucide-react";
+import { Playwrite_BE_VLG } from "next/font/google";
 
 export default async function Pricing() {
+  const session = await auth();
+  console.log(!session?.user)
+
   return (
     <section className="py-10 mt-20 ">
       <div className="text-center">

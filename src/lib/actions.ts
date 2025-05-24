@@ -3,7 +3,9 @@
 import { signIn,signOut } from "@/../auth";
 
 export async function githubSignIn() {
-  await signIn("github");
+  return await signIn("github", { 
+    redirectTo: "/pricing" 
+  });
 }
 export async function githubSignOut() {
   await signOut();

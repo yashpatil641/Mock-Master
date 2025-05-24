@@ -11,6 +11,8 @@ import { PlusCircle, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { getTemplates, createTemplate, deleteTemplate } from "./actions";
+import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
 
 interface Template {
   id: string;
@@ -29,6 +31,11 @@ interface TemplatesResponse {
 }
 
 export default function TemplatesPage() {
+  const { data: session } = useSession()
+  if (!session?.user) {
+    redirect('/login');
+  }
+   
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newTemplate, setNewTemplate] = useState({
@@ -40,6 +47,8 @@ export default function TemplatesPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+
 
   // Load templates when the component mounts
   useEffect(() => {
@@ -87,7 +96,7 @@ export default function TemplatesPage() {
         // Add the new template to the UI with the correct date format
         setTemplates(prev => {
           if (!result.template) return prev;
-          
+
           return [
             {
               ...result.template,
@@ -255,10 +264,12 @@ export default function TemplatesPage() {
             <Card key={template.id} className="p-6 hover:shadow-lg hover:bg-gray-800/50 bg-gray-800/30 transition-shadow">
               <h2 className="text-xl font-semibold mb-2">{template.name}</h2>
               <div className="flex flex-wrap gap-2 mb-3">
-                <span className="bg-blue-200 text-blue-600 text-sm font-semibold px-2.5 py-0.5 rounded-full">
+                <span className="inline-flex items-center bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1.5 rounded-lg border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/50">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                   {template.role}
                 </span>
-                <span className="bg-green-200 text-black/90 text-sm font-semibold px-2.5 py-0.5 rounded-full">
+                <span className="inline-flex items-center bg-green-100 text-green-800 text-sm font-semibold px-3 py-1.5 rounded-lg border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700/50">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                   {template.experienceLevel}
                 </span>
               </div>
@@ -270,7 +281,7 @@ export default function TemplatesPage() {
 
                 <div className="flex gap-2 items-center justify-center">
                   <Button
-                  className="bg-black/70 hover:bg-black/40"
+                    className="bg-black/70 hover:bg-black/40"
                     variant="outline"
                     size="default"
                     asChild
