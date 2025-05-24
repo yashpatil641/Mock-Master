@@ -1,0 +1,9 @@
+{
+  "buildCommand": "pnpm vercel-build",
+  "installCommand": "pnpm install && pnpm prisma generate",
+  "functions": {
+    "app/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
