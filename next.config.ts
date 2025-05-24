@@ -1,4 +1,4 @@
-import type { NextConfig } from 'next';
+import { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -9,13 +9,8 @@ const nextConfig: NextConfig = {
   },
   output: 'standalone',
   images: {
+    domains: ['avatars.githubusercontent.com'],
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'avatars.githubusercontent.com',
-        port: '',
-        pathname: '/**',
-      },
       {
         protocol: 'https',
         hostname: 'i.pravatar.cc',
@@ -24,15 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
-  },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('@prisma/client')
-    }
-    return config
-  },
 };
 
-export default nextConfig;
+// Use CommonJS export for Next.js compatibility
+module.exports = nextConfig;
