@@ -1,4 +1,4 @@
-import { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -7,28 +7,32 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  output: "standalone",
+  output: 'standalone',
   images: {
-    domains: ["avatars.githubusercontent.com"],
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "i.pravatar.cc",
-        port: "",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+        port: '', 
+        pathname: '/**',
       },
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ["@prisma/client"],
+    serverComponentsExternalPackages: ['@prisma/client'],
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals.push("@prisma/client");
+      config.externals.push('@prisma/client')
     }
-    return config;
+    return config
   },
 };
 
-// Use CommonJS export for Next.js compatibility
-module.exports = nextConfig;
+export default nextConfig;
