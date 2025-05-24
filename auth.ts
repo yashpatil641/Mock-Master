@@ -20,6 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.AUTH_GITHUB_SECRET,
     })
   ],
+    trustHost: true, 
   callbacks: {
     session: ({ session, user }) => ({
       ...session,
