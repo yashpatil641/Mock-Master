@@ -65,3 +65,7 @@ prisma/migrations/*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Prisma
+node_modules/.prisma/
+prisma/generated/
