@@ -67,8 +67,27 @@ export function Navbar({ user }: { user: { name?: string | null; image?: string 
     return () => window.removeEventListener("scroll", handleScroll);
   }, [scrolled]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-dropdown]') && !target.closest('[data-dropdown-content]')) {
+        setActiveDropdown(null);
+      }
+    };
+
+    if (activeDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [activeDropdown]);
+
   const toggleDropdown = (name: string) => {
     setActiveDropdown(activeDropdown === name ? null : name);
+  };
+
+  const closeDropdown = () => {
+    setActiveDropdown(null);
   };
 
   return (
@@ -93,7 +112,7 @@ export function Navbar({ user }: { user: { name?: string | null; image?: string 
           {NavItems.map((item) => (
             <div key={item.name} className="relative">
               {item.dropdown ? (
-                <div>
+                <div data-dropdown>
                   <button
                     onClick={() => toggleDropdown(item.name)}
                     className={`px-4 py-2 flex items-center gap-2 rounded-lg transition-colors
@@ -114,11 +133,13 @@ export function Navbar({ user }: { user: { name?: string | null; image?: string 
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.2 }}
                         className="absolute top-full mt-1 w-48 bg-slate-900/95 backdrop-blur-lg border border-slate-700/50 rounded-lg shadow-lg overflow-hidden z-50"
+                        data-dropdown-content
                       >
                         {item.dropdown.map((subItem) => (
                           <Link
                             key={subItem.name}
                             href={subItem.href}
+                            onClick={closeDropdown}
                             className={`block px-4 py-2 hover:bg-white/10 transition-colors
                               ${isActive(subItem.href)
                                 ? "text-white bg-white/5 border-l-2 border-cyan-500"
@@ -295,7 +316,10 @@ export function Navbar({ user }: { user: { name?: string | null; image?: string 
                                         ? "text-white border-l-2 border-cyan-500 pl-3"
                                         : "text-slate-400 hover:text-white"
                                       }`}
-                                    onClick={() => setMobileMenuOpen(false)}
+                                    onClick={() => {
+                                      setMobileMenuOpen(false);
+                                      setActiveDropdown(null);
+                                    }}
                                   >
                                     {subItem.name}
                                   </Link>
