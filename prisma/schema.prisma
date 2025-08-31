@@ -16,10 +16,14 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Profile fields  
+  location      String?
+  bio           String?
+  skills        String[]  @default([])
+
   accounts      Account[]
   sessions      Session[]
   
-  // Your existing relations
   templates     Template[]
   interviews    Interview[]
 }
@@ -78,6 +82,9 @@ model Interview {
   title     String
   company   String
   position  String
+  score     Float?
+  duration  Int?       // in minutes
+  feedback  String?
   questions Question[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
