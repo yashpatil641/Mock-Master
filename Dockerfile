@@ -7,9 +7,11 @@ RUN npm install -g pnpm@10.6.2
 # Set working directory
 WORKDIR /app
 
-# Install dependencies with proper configuration
+# Install dependencies
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
+# Copy prisma schema so prisma generate works during install
+COPY prisma ./prisma
 
 # Configure pnpm to use node-linker=hoisted to fix Next.js path issues
 RUN echo "node-linker=hoisted" > .npmrc && \
@@ -29,7 +31,6 @@ ENV NODE_ENV production
 
 # Build the application
 RUN pnpm exec next build
-# RUN pnpm dev
 
 # Production image
 FROM base AS runner
@@ -44,13 +45,16 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Set up application directories
-COPY --from=builder /app/public ./public
+
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Also copy prisma schema for runtime
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 # Switch to non-root user
 USER nextjs
@@ -61,3 +65,4 @@ ENV PORT 3000
 
 # Start the application
 CMD ["node", "server.js"]
+
