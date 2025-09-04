@@ -241,10 +241,7 @@ export function Navbar({
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-slate-700" />
                 <DropdownMenuItem className="hover:bg-white/10 focus:bg-white/10 cursor-pointer">
-                  <User size={16} className="mr-2" /> Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-white/10 focus:bg-white/10 cursor-pointer">
-                  <Settings size={16} className="mr-2" /> Settings
+                <Link href="/profile" className="flex items-center"><User size={16} className="mr-2" /><span>Profile</span></Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-slate-700" />
                 <form action={githubSignOut}>
