@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 export default function SmoothScroll({ children }: { children: React.ReactNode }) {
   const rafRef = useRef<number | null>(null);
+  const pathname = usePathname(); 
 
   useEffect(() => {
     let current = 0;
@@ -18,23 +20,20 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     };
     setSpacerHeight();
 
-    const onResize = () => {
-      setSpacerHeight();
-    };
+    const onResize = () => setSpacerHeight();
 
     const checkSectionAndUpdateURL = () => {
-      const reviewsElement = document.getElementById('reviews');
-      if (reviewsElement) {
-        const rect = reviewsElement.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        
-        const isInView = rect.top < windowHeight * 0.5 && rect.bottom > windowHeight * 0.5;
-        
-        if (isInView && !window.location.hash.includes('reviews')) {
-          window.history.replaceState(null, '', '/#reviews');
-        } else if (!isInView && window.location.hash.includes('reviews')) {
-          window.history.replaceState(null, '', window.location.pathname);
-        }
+      const reviewsElement = document.getElementById("reviews");
+      if (!reviewsElement) return; 
+
+      const rect = reviewsElement.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const isInView = rect.top < windowHeight * 0.5 && rect.bottom > windowHeight * 0.5;
+
+      if (isInView && !window.location.hash.includes("reviews")) {
+        window.history.replaceState(null, "", `/#reviews`);
+      } else if (!isInView && window.location.hash.includes("reviews")) {
+        window.history.replaceState(null, "", window.location.pathname);
       }
     };
 
@@ -45,31 +44,25 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
 
     const handleAnchorClick = (e: Event) => {
       const target = e.target as HTMLElement;
-      const link = target.closest('a');
-      
-      if (link && link.getAttribute('href')?.startsWith('/#')) {
+      const link = target.closest("a");
+
+      if (link && link.getAttribute("href")?.startsWith("/#")) {
         e.preventDefault();
-        const hash = link.getAttribute('href')?.substring(2);
-        const element = document.getElementById(hash || '');
-        
+        const hash = link.getAttribute("href")?.substring(2);
+        const element = document.getElementById(hash || "");
+
         if (element) {
           const rect = element.getBoundingClientRect();
           const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
           const targetY = rect.top + scrollTop;
-          
+
           window.scrollTo({
             top: targetY,
-            behavior: 'smooth'
+            behavior: "smooth",
           });
-          
-          window.history.replaceState(null, '', `/#${hash}`);
-        }
-      }
-    };
 
-    const clearInitialHash = () => {
-      if (window.location.hash) {
-        window.history.replaceState(null, '', window.location.pathname);
+          window.history.replaceState(null, "", `/#${hash}`);
+        }
       }
     };
 
@@ -84,18 +77,15 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     document.addEventListener("click", handleAnchorClick);
 
     animate();
-    clearInitialHash();
 
     return () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("click", handleAnchorClick);
-      
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
+
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [pathname]); // ✅ re-run effect when route changes
 
   return (
     <>
