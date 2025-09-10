@@ -269,7 +269,7 @@ export function Navbar({
                 asChild
                 className="bg-gradient-to-r from-cyan-500/80 to-blue-600/80 hover:from-cyan-500 hover:to-blue-600 text-white border-none font-semibold"
               >
-                <Link href="/signup">Sign up</Link>
+                <Link href="/login">Sign up</Link>
               </Button>
             </>
           )}
