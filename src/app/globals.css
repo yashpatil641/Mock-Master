@@ -63,11 +63,26 @@
     border-color: var(--color-border);
   }
   body {
-    @apply bg-background text-foreground;
-    overflow-x: hidden;
+    @apply bg-background text-foreground overflow-x-hidden;
+    margin: 0;
   }
+  
+  
 }
 
 @theme inline {
   --radius-inherit: inherit;
+}
+
+#smooth-scroll-container {
+  will-change: transform;
+  position:fixed;
+}
+
+#scroll-spacer {
+  width: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
 }
