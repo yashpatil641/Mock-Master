@@ -185,7 +185,7 @@ const ProfessionalProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0E1525] text-white flex items-center justify-center">
+      <div className="min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-800 via-indigo-900 to-slate-950 mt-18 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E5FF] mx-auto mb-4"></div>
           <p className="text-gray-400">Loading profile...</p>
