@@ -195,7 +195,7 @@ const ProfessionalProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0E1525] text-white ">
+    <div className="min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-800 via-indigo-900 to-slate-950 mt-18">
       <input 
         type="file" 
         ref={fileInputRef}
