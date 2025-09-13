@@ -422,7 +422,7 @@ export default function InterviewResult({
           className="bg-white/10 hover:bg-white/20 text-white"
           asChild
         >
-          <Link href="/dashboard">Return to Dashboard</Link>
+          <Link href="/myinterviews">Return to Dashboard</Link>
         </Button>
         <Button
           className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
