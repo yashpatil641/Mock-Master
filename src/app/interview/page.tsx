@@ -52,6 +52,8 @@ function InterviewContent() {
 
   // State management
   const [QuestionsAvailable, setQuestionsAvailable] = useState(false);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [results, setResults] = useState<any>(null);
   const [questions, setQuestions] = useState<Questions[]>([]);
   const [state, setState] = useState<InterviewState>("intro");
@@ -66,6 +68,47 @@ function InterviewContent() {
 
   // References
   const audioTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const loadQuestions = async () => {
+      if (questions.length > 0) return;
+      
+      setQuestionsLoading(true);
+      setQuestionsError(null);
+      
+      try {
+        console.log("Loading questions for:", InterviewInfo);
+        const fetchedQuestions = await getIntervewQuestions(InterviewInfo);
+
+        if (fetchedQuestions.error) {
+          throw new Error(fetchedQuestions.error);
+        }
+
+        if (!Array.isArray(fetchedQuestions) || fetchedQuestions.length === 0) {
+          throw new Error("No questions received from the API");
+        }
+        
+        console.log("Questions loaded successfully:", fetchedQuestions);
+        setQuestions(fetchedQuestions);
+        setQuestionsAvailable(true);
+        
+        toast.success("Questions loaded successfully!", {
+          description: `${fetchedQuestions.length} questions ready for your interview.`,
+        });
+      } catch (error) {
+        console.error("Error loading questions:", error);
+        setQuestionsError(error instanceof Error ? error.message : "Failed to load questions");
+        
+        toast.error("Failed to load questions", {
+          description: "Please refresh the page and try again.",
+        });
+      } finally {
+        setQuestionsLoading(false);
+      }
+    };
+
+    loadQuestions();
+  }, [InterviewInfo.title, InterviewInfo.position, InterviewInfo.experience, InterviewInfo.Description]);
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex) / questions.length) * 100;
@@ -232,7 +275,7 @@ function InterviewContent() {
                     Job Description
                   </h3>
                   <p className="text-slate-300 text-md">
-                    {InterviewInfo.Description.charAt(0).toUpperCase() + InterviewInfo.title.slice(1)}
+                    {InterviewInfo.Description.charAt(0).toUpperCase() + InterviewInfo.Description.slice(1)}
                   </p>
                 </div>
 
@@ -245,7 +288,7 @@ function InterviewContent() {
                     <ul className="space-y-3 text-slate-300">
                       <li className="flex gap-2">
                         <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">1</div>
-                        <span>You'll be presented with {questions.length} interview questions one at a time.</span>
+                        <span>You'll be presented with {QuestionsAvailable ? questions.length : '...'} interview questions one at a time.</span>
                       </li>
                       <li className="flex gap-2">
                         <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">2</div>
@@ -278,16 +321,44 @@ function InterviewContent() {
                   </div>
                 </div>
 
+                {questionsError && (
+                  <div className="mb-6 bg-red-900/30 border border-red-500/30 rounded-lg p-4 text-sm text-red-300">
+                    <div className="font-medium mb-1 flex items-center gap-2">
+                      <AlertCircle size={16} />
+                      Failed to load questions
+                    </div>
+                    <p className="mb-2">{questionsError}</p>
+                    <Button
+                      onClick={() => window.location.reload()}
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/50 hover:bg-red-950/50 text-red-300"
+                    >
+                      Refresh Page
+                    </Button>
+                  </div>
+                )}
+
                 <div className="flex justify-end">
                   <Button
-                    disabled={!QuestionsAvailable}
+                    disabled={!QuestionsAvailable || questionsLoading}
                     onClick={startInterview}
                     className={`text-white gap-2 px-6 py-6 text-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700`}
                   >
-                    {!QuestionsAvailable ? (
+                    {questionsLoading ? (
                       <>
                         <Loader2 size={18} className="animate-spin mr-2" />
                         Loading Questions
+                      </>
+                    ) : questionsError ? (
+                      <>
+                        <AlertCircle size={18} className="mr-2" />
+                        Error Loading Questions
+                      </>
+                    ) : !QuestionsAvailable ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin mr-2" />
+                        Preparing Interview
                       </>
                     ) : (
                       <>
