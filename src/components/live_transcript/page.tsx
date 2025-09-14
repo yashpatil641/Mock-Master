@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 
 interface LiveTranscriptionProps {
@@ -14,9 +14,18 @@ export default function LiveTranscription({ isRecording, onTranscriptUpdate }: L
 	const [error, setError] = useState("");
 	const recognitionRef = useRef<any>(null);
 
-	// Initialize speech recognition
+
+	const handleTranscriptUpdate = useCallback((updatedTranscript: string) => {
+		if (onTranscriptUpdate) {
+
+			setTimeout(() => {
+				onTranscriptUpdate(updatedTranscript);
+			}, 0);
+		}
+	}, [onTranscriptUpdate]);
+
 	useEffect(() => {
-		// Check if browser supports SpeechRecognition
+
 		const SpeechRecognition =
 			window.SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -42,10 +51,8 @@ export default function LiveTranscription({ isRecording, onTranscriptUpdate }: L
 				if (finalText) {
 					setTranscript(prev => {
 						const updatedTranscript = prev + finalText + " ";
-						// If parent component wants to be updated on transcript changes
-						if (onTranscriptUpdate) {
-							onTranscriptUpdate(updatedTranscript);
-						}
+						// Defer the parent callback to avoid setState during render
+						handleTranscriptUpdate(updatedTranscript);
 						return updatedTranscript;
 					});
 					setInterimTranscript("");
@@ -88,7 +95,7 @@ export default function LiveTranscription({ isRecording, onTranscriptUpdate }: L
 				}
 			}
 		};
-	}, [onTranscriptUpdate]);
+	}, [handleTranscriptUpdate]); // Include handleTranscriptUpdate in dependencies
 
 	// Handle recording state changes
 	useEffect(() => {
@@ -97,6 +104,7 @@ export default function LiveTranscription({ isRecording, onTranscriptUpdate }: L
 		if (isRecording) {
 			setTranscript("");
 			setInterimTranscript("");
+			setError(""); // Clear any previous errors
 			try {
 				// Check if recognition is already running before starting
 				if (recognitionRef.current.state !== "running") {
@@ -104,23 +112,7 @@ export default function LiveTranscription({ isRecording, onTranscriptUpdate }: L
 				}
 			} catch (e) {
 				console.error("Could not start speech recognition:", e);
-				// Recreate the recognition instance if there was an error
-				const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-				if (SpeechRecognition) {
-					const newRecognition = new SpeechRecognition();
-					// Re-configure the new instance
-					newRecognition.continuous = true;
-					newRecognition.interimResults = true;
-					newRecognition.lang = "en-US";
-					// Reassign all event handlers
-					// ... (copy the event handlers from the initialization code)
-					recognitionRef.current = newRecognition;
-					try {
-						newRecognition.start();
-					} catch (retryErr) {
-						console.error("Failed to restart recognition:", retryErr);
-					}
-				}
+				setError("Failed to start speech recognition. Please try again.");
 			}
 		} else if (recognitionRef.current) {
 			try {
