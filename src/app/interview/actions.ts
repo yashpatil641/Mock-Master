@@ -1,4 +1,3 @@
-// src/app/interview/actions.ts
 "use server";
 
 import { model } from "../../lib/gemini";
@@ -10,8 +9,11 @@ export type InterviewInfoType = {
   title: string;
   position: string;
   experience: string;
-  Description: string;
+  description: string;
   company?: string;
+  numberOfQuestions?: number; 
+  focusAreas?: string[]; 
+  difficulty?: "easy" | "medium" | "hard"; 
 };
 
 export type QuestionType = {
@@ -44,42 +46,60 @@ export type AnalysisResult = {
   }>;
 };
 
-const generateQuestions = async (InterviewInfo: InterviewInfoType): Promise<QuestionType[] | { error: string }> => {
+const generateQuestions = async (
+  interviewInfo: InterviewInfoType
+): Promise<QuestionType[] | { error: string }> => {
+  const numQuestions = interviewInfo.numberOfQuestions || 5;
+  
+  const focusAreasText = interviewInfo.focusAreas && interviewInfo.focusAreas.length > 0
+    ? `\nFocus on these specific areas: ${interviewInfo.focusAreas.join(", ")}`
+    : "";
+  
+  const difficultyGuidance = interviewInfo.difficulty
+    ? `\nDifficulty Level: ${interviewInfo.difficulty.toUpperCase()} - Adjust question complexity accordingly.`
+    : "";
+
   const prompt = `
-  Generate 2 interview questions for a ${InterviewInfo.position} position that requires ${InterviewInfo.experience} experience.
+  You are an expert interviewer. Generate exactly ${numQuestions} interview questions for a ${interviewInfo.position} position that requires ${interviewInfo.experience} experience level.
   
-  Job Description: ${InterviewInfo.Description}
+  Job Description: ${interviewInfo.description}
+  ${focusAreasText}${difficultyGuidance}
   
-  For each question, include:
-  1. A challenging, open-ended interview question relevant to the position
-  2. The expected duration to answer in seconds (between 60-180 seconds)
-  3. Tips for the candidate on how to structure a good answer
+  Requirements for each question:
+  1. Must be challenging, open-ended, and highly relevant to the ${interviewInfo.position} role
+  2. Should assess different aspects: technical skills, problem-solving, teamwork, leadership, past experience, etc.
+  3. Expected duration should be between 60-180 seconds based on question complexity
+  4. Provide practical tips that help candidates structure effective answers
+  5. Questions should be tailored to the ${interviewInfo.experience} experience level
   
-  Return the questions in a valid JSON array format exactly as shown below:
+  Return EXACTLY ${numQuestions} questions in this valid JSON array format:
   [
     {
       "id": 1,
-      "text": "Question text here?",
+      "text": "Detailed question text here?",
       "expectedDuration": 120,
-      "tips": "Tips for answering this question effectively."
+      "tips": "Specific tips for answering this question effectively. Use STAR method, provide examples, etc."
     },
     {
       "id": 2,
-      "text": "Question text here?",
+      "text": "Detailed question text here?",
       "expectedDuration": 90,
-      "tips": "Tips for answering this question effectively."
+      "tips": "Specific tips for answering this question effectively."
     }
   ]
   
-  Do not include any explanations or additional text outside of the JSON array.
-  Ensure the questions are challenging and specific to the ${InterviewInfo.position} role.
+  CRITICAL RULES:
+  - Return ONLY the JSON array, no markdown, no explanation, no additional text
+  - Generate exactly ${numQuestions} questions
+  - Each question must be unique and test different competencies
+  - Questions should be specific to ${interviewInfo.position}, not generic
+  - For ${interviewInfo.experience} level, questions should be appropriately challenging
   `;
 
   try {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
-    // Extract the JSON part from the response if needed
     const jsonPattern = /\[\s*\{[\s\S]*\}\s*\]/;
     const match = responseText.match(jsonPattern);
 
@@ -88,9 +108,13 @@ const generateQuestions = async (InterviewInfo: InterviewInfoType): Promise<Ques
       return { error: "Failed to extract valid JSON from AI response" };
     }
 
-    // Parse the JSON
     try {
       const questions = JSON.parse(match[0]) as QuestionType[];
+      
+      if (questions.length !== numQuestions) {
+        console.warn(`Expected ${numQuestions} questions but got ${questions.length}`);
+      }
+      
       return questions;
     } catch (parseError) {
       const errorMessage = parseError instanceof Error ? parseError.message : "Unknown parsing error";
@@ -104,19 +128,53 @@ const generateQuestions = async (InterviewInfo: InterviewInfoType): Promise<Ques
   }
 };
 
-export const getIntervewQuestions = async (
-  InterviewInfo: InterviewInfoType
+export const getInterviewQuestions = async (
+  interviewInfo: InterviewInfoType
 ): Promise<QuestionType[] | { error: string }> => {
-  const questions = await generateQuestions(InterviewInfo);
+  const questions = await generateQuestions(interviewInfo);
   return questions;
 };
 
-// Helper function to clean and extract JSON from AI response
+
+export const getQuestionsFromTemplate = async (
+  templateId: string,
+  userId: string,
+  numberOfQuestions?: number
+): Promise<QuestionType[] | { error: string }> => {
+  try {
+
+    const template = await prisma.template.findFirst({
+      where: {
+        id: templateId,
+        userId: userId, 
+      },
+    });
+
+    if (!template) {
+      return { error: "Template not found or access denied" };
+    }
+
+    const interviewInfo: InterviewInfoType = {
+      title: template.name,
+      position: template.role,
+      experience: template.experienceLevel,
+      description: template.description,
+      numberOfQuestions: numberOfQuestions,
+    };
+
+    return await generateQuestions(interviewInfo);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error generating questions from template:", errorMessage);
+    return { error: errorMessage };
+  }
+};
+
+
 const extractAndParseJSON = (responseText: string): any => {
-  // Remove any markdown code blocks if present
+  
   let cleanedText = responseText.replace(/```json\s*|\s*```/g, '').trim();
   
-  // Try to find JSON object pattern
   const jsonPattern = /\{[\s\S]*\}/;
   const match = cleanedText.match(jsonPattern);
   
@@ -124,13 +182,13 @@ const extractAndParseJSON = (responseText: string): any => {
     cleanedText = match[0];
   }
   
-  // Additional cleaning - remove any text before opening brace
+  
   const openBraceIndex = cleanedText.indexOf('{');
   if (openBraceIndex > 0) {
     cleanedText = cleanedText.substring(openBraceIndex);
   }
   
-  // Additional cleaning - remove any text after closing brace
+  
   const closeBraceIndex = cleanedText.lastIndexOf('}');
   if (closeBraceIndex !== -1 && closeBraceIndex < cleanedText.length - 1) {
     cleanedText = cleanedText.substring(0, closeBraceIndex + 1);
@@ -145,14 +203,13 @@ export const analyzeAnswers = async (
   interviewInfo: InterviewInfoType
 ): Promise<AnalysisResult> => {
   try {
-    // Enhanced prompt with stricter JSON requirements
     const prompt = `
       You are an expert interviewer analyzing interview responses. You MUST return ONLY valid JSON with no additional text.
       
       INTERVIEW DETAILS:
       Position: ${interviewInfo.position}
       Experience Level: ${interviewInfo.experience}
-      Job Description: ${interviewInfo.Description}
+      Job Description: ${interviewInfo.description}
       
       QUESTIONS AND ANSWERS:
       ${questions
@@ -166,6 +223,14 @@ export const analyzeAnswers = async (
         `;
         })
         .join("\n\n")}
+      
+      Analyze each answer based on:
+      1. Relevance to the question and role
+      2. Depth and detail of the response
+      3. Communication clarity
+      4. Use of examples and specific details
+      5. Time management (compared to expected duration)
+      6. Demonstration of required skills for ${interviewInfo.experience} level
       
       Return ONLY this exact JSON structure with no extra text:
       {
@@ -195,17 +260,11 @@ export const analyzeAnswers = async (
             "improvements": ["Need more specific examples", "Could be more structured"],
             "timeAssessment": "Appropriate duration for the response",
             "keyPoints": ["Mentioned key concepts", "Showed problem-solving approach"]
-          },
-          {
-            "id": 2,
-            "score": 80,
-            "strengths": ["Specific examples given", "Good technical knowledge"],
-            "improvements": ["Could elaborate more", "Better conclusion needed"],
-            "timeAssessment": "Good use of allocated time",
-            "keyPoints": ["Demonstrated experience", "Clear explanation provided"]
           }
         ]
       }
+      
+      IMPORTANT: Include analysis for ALL ${questions.length} questions in the questionAnalysis array.
     `;
 
     console.log("Sending request to Gemini API...");
@@ -215,7 +274,6 @@ export const analyzeAnswers = async (
     console.log("Raw AI response:", responseText);
 
     try {
-      // First attempt: direct JSON parsing
       const jsonObject = JSON.parse(responseText) as AnalysisResult;
       console.log("Successfully parsed JSON on first attempt");
       return jsonObject;
@@ -224,7 +282,7 @@ export const analyzeAnswers = async (
       console.log("First JSON parse failed, trying extraction method...");
       
       try {
-        // Second attempt: extract and clean JSON
+
         const jsonObject = extractAndParseJSON(responseText) as AnalysisResult;
         console.log("Successfully parsed JSON after extraction");
         return jsonObject;
@@ -236,7 +294,7 @@ export const analyzeAnswers = async (
           responseText: responseText
         });
         
-        // Fallback: return a basic structure with available data
+
         return createFallbackAnalysis(questions);
       }
     }
@@ -244,7 +302,6 @@ export const analyzeAnswers = async (
     const errorMessage = mainError instanceof Error ? mainError.message : "Unknown analysis error";
     console.error("Error in analyzeAnswers:", errorMessage);
     
-    // Return fallback structure instead of throwing
     return createFallbackAnalysis(questions);
   }
 };
@@ -280,7 +337,7 @@ const createFallbackAnalysis = (questions: QuestionType[]): AnalysisResult => {
   };
 };
 
-// Function to save interview results to database
+
 export const saveInterviewResults = async (
   userId: string,
   interviewInfo: InterviewInfoType,
@@ -289,19 +346,17 @@ export const saveInterviewResults = async (
   results: AnalysisResult
 ): Promise<{ success: true; interviewId: number } | { success: false; error: string }> => {
   try {
-    // Calculate total duration
+
     const totalDuration = Object.values(answers).reduce((sum, answer) => sum + answer.duration, 0);
     
-    // Start a transaction to ensure data consistency
     const savedInterview = await prisma.$transaction(async (tx) => {
-      // Create the main interview record
       const interview = await tx.interview.create({
         data: {
           title: interviewInfo.title,
           company: interviewInfo.company || "Not specified",
           position: interviewInfo.position,
           score: results.overallScore,
-          duration: Math.ceil(totalDuration / 60), // Convert to minutes
+          duration: Math.ceil(totalDuration / 60), 
           feedback: JSON.stringify({
             categories: results.categories,
             strengths: results.strengths,
@@ -312,7 +367,6 @@ export const saveInterviewResults = async (
         },
       });
 
-      // Create questions and answers
       for (const question of questions) {
         const createdQuestion = await tx.question.create({
           data: {
@@ -323,7 +377,7 @@ export const saveInterviewResults = async (
           },
         });
 
-        // Create answer if exists
+        
         const answer = answers[question.id];
         if (answer) {
           await tx.answer.create({
@@ -349,7 +403,7 @@ export const saveInterviewResults = async (
   }
 };
 
-// Function to get user's interview history
+
 export const getUserInterviews = async (userId: string) => {
   try {
     const interviews = await prisma.interview.findMany({
@@ -376,13 +430,13 @@ export const getUserInterviews = async (userId: string) => {
   }
 };
 
-// Function to get a specific interview by ID
+
 export const getInterviewById = async (interviewId: number, userId: string) => {
   try {
     const interview = await prisma.interview.findFirst({
       where: {
         id: interviewId,
-        userId: userId, // Ensure user can only access their own interviews
+        userId: userId, 
       },
       include: {
         questions: {
@@ -405,10 +459,10 @@ export const getInterviewById = async (interviewId: number, userId: string) => {
   }
 };
 
-// Function to delete an interview
+
 export const deleteInterview = async (interviewId: number, userId: string) => {
   try {
-    // Verify ownership before deletion
+  
     const interview = await prisma.interview.findFirst({
       where: {
         id: interviewId,
@@ -420,7 +474,7 @@ export const deleteInterview = async (interviewId: number, userId: string) => {
       return { success: false, error: "Interview not found or access denied" };
     }
 
-    // Delete the interview (cascade will handle questions and answers)
+
     await prisma.interview.delete({
       where: {
         id: interviewId,
@@ -431,6 +485,144 @@ export const deleteInterview = async (interviewId: number, userId: string) => {
   } catch (deleteError) {
     const errorMessage = deleteError instanceof Error ? deleteError.message : "Unknown delete error";
     console.error("Error deleting interview:", deleteError);
+    return { success: false, error: errorMessage };
+  }
+};
+
+
+export const createTemplate = async (
+  userId: string,
+  templateData: {
+    name: string;
+    role: string;
+    experienceLevel: string;
+    description: string;
+  }
+) => {
+  try {
+    const template = await prisma.template.create({
+      data: {
+        name: templateData.name,
+        role: templateData.role,
+        experienceLevel: templateData.experienceLevel,
+        description: templateData.description,
+        userId: userId,
+      },
+    });
+
+    return { success: true, template };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error creating template:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+};
+
+export const getUserTemplates = async (userId: string) => {
+  try {
+    const templates = await prisma.template.findMany({
+      where: {
+        userId: userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return { success: true, templates };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error fetching templates:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+};
+
+
+export const getTemplateById = async (templateId: string, userId: string) => {
+  try {
+    const template = await prisma.template.findFirst({
+      where: {
+        id: templateId,
+        userId: userId,
+      },
+    });
+
+    if (!template) {
+      return { success: false, error: "Template not found or access denied" };
+    }
+
+    return { success: true, template };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error fetching template:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+};
+
+
+export const updateTemplate = async (
+  templateId: string,
+  userId: string,
+  updates: {
+    name?: string;
+    role?: string;
+    experienceLevel?: string;
+    description?: string;
+  }
+) => {
+  try {
+    
+    const existing = await prisma.template.findFirst({
+      where: {
+        id: templateId,
+        userId: userId,
+      },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Template not found or access denied" };
+    }
+
+    const template = await prisma.template.update({
+      where: {
+        id: templateId,
+      },
+      data: updates,
+    });
+
+    return { success: true, template };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error updating template:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+};
+
+
+export const deleteTemplate = async (templateId: string, userId: string) => {
+  try {
+    
+    const template = await prisma.template.findFirst({
+      where: {
+        id: templateId,
+        userId: userId,
+      },
+    });
+
+    if (!template) {
+      return { success: false, error: "Template not found or access denied" };
+    }
+
+    await prisma.template.delete({
+      where: {
+        id: templateId,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error deleting template:", errorMessage);
     return { success: false, error: errorMessage };
   }
 };
