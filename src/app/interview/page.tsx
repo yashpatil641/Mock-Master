@@ -1,11 +1,11 @@
 "use client";
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Toaster, toast } from "sonner";
 import { redirect, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react"
+import { useSession } from "next-auth/react";
 
 import {
   Briefcase,
@@ -15,12 +15,16 @@ import {
   Clock,
   AlertCircle,
   ArrowRight,
-  Info
+  Info,
 } from "lucide-react";
 import Link from "next/link";
 import LiveTranscription from "@/components/live_transcript/page";
 import InterviewResult from "@/components/interview_result/page";
-import { getIntervewQuestions, analyzeAnswers, saveInterviewResults } from "./actions";
+import {
+  getInterviewQuestions,
+  analyzeAnswers,
+  saveInterviewResults,
+} from "./actions";
 
 type Questions = {
   id: number;
@@ -29,34 +33,74 @@ type Questions = {
   tips: string;
 };
 
-// Interview states
-type InterviewState = "intro" | "inProgress" | "processingAnswers" | "completed";
 
-// Type guard to check if the result is an error
-const isErrorResult = (result: Questions[] | { error: string }): result is { error: string } => {
-  return 'error' in result;
+type InterviewState =
+  | "intro"
+  | "inProgress"
+  | "processingAnswers"
+  | "completed";
+
+
+const isErrorResult = (
+  result: Questions[] | { error: string }
+): result is { error: string } => {
+  return "error" in result;
 };
 
-// Create a separate component for the interview content
+
 function InterviewContent() {
-  // Get the query parameters
+
   const searchParams = useSearchParams();
-  const { data: session } = useSession()
+  const { data: session } = useSession();
 
   if (!session?.user) {
-    redirect('/login');
+    redirect("/login");
   }
 
-  // Extract template info from query parameters
-  const InterviewInfo = {
-    title: searchParams.get("title") || "Mock Interview",
-    position: searchParams.get("position") || "Not Specified",
-    experience: searchParams.get("experience") || "Not Specified",
-    Description: searchParams.get("description") || "No description provided for this interview.",
-    company: searchParams.get("company") || "Not Specified" // Add company field
-  };
 
-  // State management
+  const title = searchParams.get("title") || "Mock Interview";
+  const position = searchParams.get("position") || "Not Specified";
+  const experience = searchParams.get("experience") || "Not Specified";
+  const description =
+    searchParams.get("description") ||
+    "No description provided for this interview.";
+  const company = searchParams.get("company") || "Not Specified";
+  const numberOfQuestionsParam = searchParams.get("numberOfQuestions");
+  const focusAreasParam = searchParams.get("focusAreas");
+  const difficultyParam = searchParams.get("difficulty");
+
+
+  const InterviewInfo = useMemo(() => {
+    return {
+      title,
+      position,
+      experience,
+      description,
+      company,
+      numberOfQuestions: numberOfQuestionsParam
+        ? parseInt(numberOfQuestionsParam)
+        : 5,
+      focusAreas: focusAreasParam
+        ? focusAreasParam.split(",").map((area) => area.trim())
+        : undefined,
+      difficulty:
+        difficultyParam === "easy" ||
+        difficultyParam === "medium" ||
+        difficultyParam === "hard"
+          ? (difficultyParam as "easy" | "medium" | "hard")
+          : undefined,
+    };
+  }, [
+    title,
+    position,
+    experience,
+    description,
+    company,
+    numberOfQuestionsParam,
+    focusAreasParam,
+    difficultyParam,
+  ]);
+
   const [QuestionsAvailable, setQuestionsAvailable] = useState(false);
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
@@ -66,27 +110,32 @@ function InterviewContent() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, { duration: number, transcript: string }>>({});
+  const [answers, setAnswers] = useState<
+    Record<number, { duration: number; transcript: string }>
+  >({});
   const [processingAnswers, setProcessingAnswers] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState("");
 
-  // References
+  
   const audioTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadQuestions = async () => {
-      if (questions.length > 0) return;
-      
-      setQuestionsLoading(true);
-      setQuestionsError(null);
-      
-      try {
-        console.log("Loading questions for:", InterviewInfo);
-        const fetchedQuestions = await getIntervewQuestions(InterviewInfo);
+    
+      if (questionsLoading) return;
 
-        // Use type guard to check if result is an error
+      
+      setQuestionsAvailable(false);
+      setQuestionsError(null);
+      setQuestionsLoading(true);
+
+      try {
+        console.log("Loading questions with config:", InterviewInfo);
+        const fetchedQuestions = await getInterviewQuestions(InterviewInfo);
+
+      
         if (isErrorResult(fetchedQuestions)) {
           throw new Error(fetchedQuestions.error);
         }
@@ -94,18 +143,20 @@ function InterviewContent() {
         if (!Array.isArray(fetchedQuestions) || fetchedQuestions.length === 0) {
           throw new Error("No questions received from the API");
         }
-        
+
         console.log("Questions loaded successfully:", fetchedQuestions);
         setQuestions(fetchedQuestions);
         setQuestionsAvailable(true);
-        
+
         toast.success("Questions loaded successfully!", {
           description: `${fetchedQuestions.length} questions ready for your interview.`,
         });
       } catch (error) {
         console.error("Error loading questions:", error);
-        setQuestionsError(error instanceof Error ? error.message : "Failed to load questions");
-        
+        setQuestionsError(
+          error instanceof Error ? error.message : "Failed to load questions"
+        );
+
         toast.error("Failed to load questions", {
           description: "Please refresh the page and try again.",
         });
@@ -115,17 +166,26 @@ function InterviewContent() {
     };
 
     loadQuestions();
-  }, [InterviewInfo.title, InterviewInfo.position, InterviewInfo.experience, InterviewInfo.Description]);
+  }, [
+    InterviewInfo.title,
+    InterviewInfo.position,
+    InterviewInfo.experience,
+    InterviewInfo.description,
+    InterviewInfo.numberOfQuestions,
+    InterviewInfo.difficulty,
+  
+    InterviewInfo.focusAreas?.join(","),
+  ]);
 
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex) / questions.length) * 100;
+  const progress = (currentQuestionIndex / questions.length) * 100;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
-  // Timer for recording
+  
   useEffect(() => {
     if (isRecording) {
       audioTimerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
     } else if (audioTimerRef.current) {
       clearInterval(audioTimerRef.current);
@@ -138,17 +198,16 @@ function InterviewContent() {
     };
   }, [isRecording]);
 
-  // Format time for display
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  // Start recording
+
   const startRecording = async () => {
     try {
-      // Just checking if microphone is available
+      
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
       setIsRecording(true);
@@ -167,36 +226,38 @@ function InterviewContent() {
     }
   };
 
-  // Stop recording
+
   const stopRecording = () => {
     if (isRecording) {
       setIsRecording(false);
 
-      // Ensure we have a transcript, use fallback if empty
-      const finalTranscript = currentTranscript.trim() || "No transcript available - please check your microphone settings.";
+      
+      const finalTranscript =
+        currentTranscript.trim() ||
+        "No transcript available - please check your microphone settings.";
 
-      // Save answer with duration and transcript
-      setAnswers(prev => ({
+
+      setAnswers((prev) => ({
         ...prev,
         [currentQuestion.id]: {
           duration: recordingTime,
-          transcript: finalTranscript
-        }
+          transcript: finalTranscript,
+        },
       }));
 
-      // Reset for next recording
+      
       setRecordingTime(0);
 
       toast.success("Recording complete", {
         description: "Your answer has been saved.",
       });
 
-      // Process the answer
+      
       Moving_to_next_question();
     }
   };
 
-  // Start the interview
+
   const startInterview = () => {
     setState("inProgress");
     toast.info("Interview started", {
@@ -205,7 +266,7 @@ function InterviewContent() {
   };
 
   const Moving_to_next_question = async () => {
-    // If this was the last question, process all answers
+  
     if (isLastQuestion) {
       setState("processingAnswers");
       toast.info("Processing Your Answers", {
@@ -214,23 +275,30 @@ function InterviewContent() {
 
       try {
         console.log("Starting analysis with answers:", answers);
-        
-        // Call the analyzeAnswers function from actions.ts
-        const analysisResults = await analyzeAnswers(answers, questions, InterviewInfo);
+
+      
+        const analysisResults = await analyzeAnswers(
+          answers,
+          questions,
+          InterviewInfo
+        );
         console.log("Analysis results:", analysisResults);
+
         
-        // Save the interview results - use user ID instead of email
         if (session?.user?.id) {
           const saveResult = await saveInterviewResults(
-            session.user.id, // Use user.id instead of email
+            session.user.id,
             InterviewInfo,
             questions,
             answers,
             analysisResults
           );
-          
+
           if (saveResult.success) {
-            console.log("Interview saved successfully with ID:", saveResult.interviewId);
+            console.log(
+              "Interview saved successfully with ID:",
+              saveResult.interviewId
+            );
             toast.success("Interview saved!", {
               description: "Your results have been saved to your profile.",
             });
@@ -249,60 +317,64 @@ function InterviewContent() {
 
         setResults(analysisResults);
         setState("completed");
-        
+
         toast.success("Interview completed!", {
           description: "Your detailed results are ready to view.",
         });
       } catch (error) {
         console.error("Error analyzing answers:", error);
+
         
-        // Instead of failing, provide basic feedback
         const fallbackResults = {
           overallScore: 70,
           categories: [
-            {"name": "Technical Knowledge", "score": 70},
-            {"name": "Communication Skills", "score": 70},
-            {"name": "Problem Solving", "score": 70},
-            {"name": "Role Relevance", "score": 70},
-            {"name": "Overall Impression", "score": 70}
+            { name: "Technical Knowledge", score: 70 },
+            { name: "Communication Skills", score: 70 },
+            { name: "Problem Solving", score: 70 },
+            { name: "Role Relevance", score: 70 },
+            { name: "Overall Impression", score: 70 },
           ],
           strengths: [
             "Completed all interview questions",
             "Demonstrated commitment to the process",
-            "Provided responses within reasonable time frames"
+            "Provided responses within reasonable time frames",
           ],
           improvements: [
             "Detailed analysis unavailable due to technical issues",
             "Consider retaking the interview for comprehensive feedback",
-            "Ensure clear speech for better transcription accuracy"
+            "Ensure clear speech for better transcription accuracy",
           ],
-          questionAnalysis: questions.map(q => ({
+          questionAnalysis: questions.map((q) => ({
             id: q.id,
             score: 70,
             strengths: ["Response provided", "Engaged with the question"],
-            improvements: ["Analysis temporarily unavailable", "Try again for detailed feedback"],
+            improvements: [
+              "Analysis temporarily unavailable",
+              "Try again for detailed feedback",
+            ],
             timeAssessment: "Response duration was recorded",
-            keyPoints: ["Response captured", "Ready for review"]
-          }))
+            keyPoints: ["Response captured", "Ready for review"],
+          })),
         };
 
         setResults(fallbackResults);
         setState("completed");
-        
+
         toast.warning("Analysis partially completed", {
-          description: "Basic feedback available. Try again for detailed analysis.",
+          description:
+            "Basic feedback available. Try again for detailed analysis.",
         });
       }
     } else {
-      // Move to the next question after a short delay
+    
       setTimeout(() => {
-        setCurrentQuestionIndex(prev => prev + 1);
+        setCurrentQuestionIndex((prev) => prev + 1);
         toast.success("Moving to next question");
       }, 1500);
     }
   };
 
-  // Enhanced logging when interview completes
+
   useEffect(() => {
     if (state === "completed" && results) {
       console.log("=== INTERVIEW COMPLETED ===");
@@ -310,10 +382,10 @@ function InterviewContent() {
       console.log("Questions:", questions);
       console.log("All Answers:", answers);
       console.log("Results:", results);
+
       
-      // Log each answer for debugging
       Object.entries(answers).forEach(([questionId, answer]) => {
-        const question = questions.find(q => q.id === parseInt(questionId));
+        const question = questions.find((q) => q.id === parseInt(questionId));
         console.log(`\n--- Question ${questionId} ---`);
         console.log(`Q: ${question?.text}`);
         console.log(`Duration: ${formatTime(answer.duration)}`);
@@ -325,13 +397,13 @@ function InterviewContent() {
 
   return (
     <>
-      {/* Sonner toast container */}
+      
       <Toaster position="top-right" theme="dark" closeButton richColors />
 
       <div className="min-h-screen py-8 px-4 sm:px-6 relative overflow-hidden mt-30">
         <div className="max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
-            {/* Introduction Screen */}
+            
             {state === "intro" && (
               <motion.div
                 key="intro"
@@ -342,18 +414,51 @@ function InterviewContent() {
                 className="bg-gray-800/20 backdrop-blur-3xl p-8 rounded-2xl border border-white/10 shadow-xl"
               >
                 <h1 className="font-display text-3xl font-bold text-white mb-2">
-                  {InterviewInfo.title.charAt(0).toUpperCase() + InterviewInfo.title.slice(1)}
+                  {InterviewInfo.title.charAt(0).toUpperCase() +
+                    InterviewInfo.title.slice(1)}
                 </h1>
                 <p className="text-slate-300 mb-6">
-                  {InterviewInfo.position} | Experience - {InterviewInfo.experience}
+                  {InterviewInfo.position} | Experience -{" "}
+                  {InterviewInfo.experience}
                 </p>
+
+              
+                {(InterviewInfo.numberOfQuestions !== 5 ||
+                  InterviewInfo.focusAreas ||
+                  InterviewInfo.difficulty) && (
+                  <div className="bg-white/5 backdrop-blur-lg p-4 rounded-xl border border-white/10 mb-4">
+                    <h3 className="text-sm uppercase text-cyan-400 font-semibold mb-2">
+                      Interview Configuration
+                    </h3>
+                    <div className="space-y-1 text-sm text-slate-300">
+                      {InterviewInfo.numberOfQuestions !== 5 && (
+                        <p>• {InterviewInfo.numberOfQuestions} questions</p>
+                      )}
+                      {InterviewInfo.difficulty && (
+                        <p>
+                          • Difficulty:{" "}
+                          {InterviewInfo.difficulty.charAt(0).toUpperCase() +
+                            InterviewInfo.difficulty.slice(1)}
+                        </p>
+                      )}
+                      {InterviewInfo.focusAreas &&
+                        InterviewInfo.focusAreas.length > 0 && (
+                          <p>
+                            • Focus areas: {InterviewInfo.focusAreas.join(", ")}
+                          </p>
+                        )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-white/5 backdrop-blur-lg p-4 rounded-xl border border-white/10 mb-6">
                   <h3 className="text-md uppercase text-white font-semibold mb-2 flex items-center gap-2">
                     <Briefcase size={16} className="text-cyan-400" />
                     Job Description
                   </h3>
                   <p className="text-slate-300 text-md">
-                    {InterviewInfo.Description.charAt(0).toUpperCase() + InterviewInfo.Description.slice(1)}
+                    {InterviewInfo.description.charAt(0).toUpperCase() +
+                      InterviewInfo.description.slice(1)}
                   </p>
                 </div>
 
@@ -365,20 +470,43 @@ function InterviewContent() {
                     </h2>
                     <ul className="space-y-3 text-slate-300">
                       <li className="flex gap-2">
-                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">1</div>
-                        <span>You'll be presented with {QuestionsAvailable ? questions.length : '...'} interview questions one at a time.</span>
+                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">
+                          1
+                        </div>
+                        <span>
+                          You'll be presented with{" "}
+                          {QuestionsAvailable
+                            ? questions.length
+                            : InterviewInfo.numberOfQuestions}{" "}
+                          interview questions one at a time.
+                        </span>
                       </li>
                       <li className="flex gap-2">
-                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">2</div>
-                        <span>Click the microphone button and speak your answer naturally, as you would in a real interview.</span>
+                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">
+                          2
+                        </div>
+                        <span>
+                          Click the microphone button and speak your answer
+                          naturally, as you would in a real interview.
+                        </span>
                       </li>
                       <li className="flex gap-2">
-                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">3</div>
-                        <span>When finished with your response, click the stop button to submit and move to the next question.</span>
+                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">
+                          3
+                        </div>
+                        <span>
+                          When finished with your response, click the stop
+                          button to submit and move to the next question.
+                        </span>
                       </li>
                       <li className="flex gap-2">
-                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">4</div>
-                        <span>After completing all questions, you'll receive detailed feedback and scoring on your performance.</span>
+                        <div className="bg-white/10 rounded-full h-6 w-6 flex items-center justify-center shrink-0 text-sm font-medium text-cyan-400">
+                          4
+                        </div>
+                        <span>
+                          After completing all questions, you'll receive
+                          detailed feedback and scoring on your performance.
+                        </span>
                       </li>
                     </ul>
                   </div>
@@ -389,12 +517,20 @@ function InterviewContent() {
                       Microphone Access
                     </h2>
                     <p className="text-slate-300 mb-4">
-                      MockMaster needs access to your microphone to transcribe your interview answers.
-                      You'll be prompted to allow microphone access when you begin.
+                      MockMaster needs access to your microphone to transcribe
+                      your interview answers. You'll be prompted to allow
+                      microphone access when you begin.
                     </p>
                     <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4 text-sm text-blue-300">
-                      Your transcripts are processed securely and are never shared with third parties.
-                      See our <Link href="/privacy" className="text-cyan-400 hover:underline">Privacy Policy</Link> for details.
+                      Your transcripts are processed securely and are never
+                      shared with third parties. See our{" "}
+                      <Link
+                        href="/privacy"
+                        className="text-cyan-400 hover:underline"
+                      >
+                        Privacy Policy
+                      </Link>{" "}
+                      for details.
                     </div>
                   </div>
                 </div>
@@ -449,7 +585,7 @@ function InterviewContent() {
               </motion.div>
             )}
 
-            {/* Interview in Progress */}
+            
             {state === "inProgress" && (
               <motion.div
                 key="interview"
@@ -459,12 +595,15 @@ function InterviewContent() {
                 transition={{ duration: 0.5 }}
                 className="space-y-8"
               >
-                {/* Progress indicators */}
+                
                 <div className="flex justify-between items-center mb-2 text-sm text-slate-400">
-                  <div>Question {currentQuestionIndex + 1} of {questions.length}</div>
+                  <div>
+                    Question {currentQuestionIndex + 1} of {questions.length}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Clock size={14} />
-                    Expected: ~{Math.round(currentQuestion.expectedDuration / 60)} min
+                    Expected: ~
+                    {Math.round(currentQuestion.expectedDuration / 60)} min
                   </div>
                 </div>
                 <div className="relative h-1 bg-white/10 rounded-full overflow-hidden">
@@ -474,7 +613,7 @@ function InterviewContent() {
                   />
                 </div>
 
-                {/* Question Card */}
+                
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`question-${currentQuestionIndex}`}
@@ -496,7 +635,7 @@ function InterviewContent() {
                           onClick={() => setShowTips(!showTips)}
                           className="text-xs border-white/10 hover:bg-white/10 text-slate-300"
                         >
-                          {showTips ? 'Hide tips' : 'Show tips'}
+                          {showTips ? "Hide tips" : "Show tips"}
                         </Button>
                       </div>
 
@@ -504,13 +643,15 @@ function InterviewContent() {
                         {showTips && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
+                            animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden"
                           >
                             <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10 text-sm text-slate-300">
-                              <div className="font-medium text-cyan-400 mb-1">Tips:</div>
+                              <div className="font-medium text-cyan-400 mb-1">
+                                Tips:
+                              </div>
                               {currentQuestion.tips}
                             </div>
                           </motion.div>
@@ -518,7 +659,7 @@ function InterviewContent() {
                       </AnimatePresence>
                     </div>
 
-                    {/* Recording controls */}
+                    
                     <div className="flex flex-col items-center gap-6">
                       {permissionDenied ? (
                         <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4 text-sm text-red-300 w-full">
@@ -526,9 +667,12 @@ function InterviewContent() {
                             <AlertCircle size={16} />
                             Microphone access denied
                           </div>
-                          <p className="mb-4">Please allow microphone access in your browser settings to continue the interview.</p>
+                          <p className="mb-4">
+                            Please allow microphone access in your browser
+                            settings to continue the interview.
+                          </p>
 
-                          {/* Add mic permission button */}
+                          
                           <Button
                             onClick={startRecording}
                             variant="outline"
@@ -547,20 +691,30 @@ function InterviewContent() {
                             </div>
                           ) : (
                             <div className="text-slate-400 text-center">
-                              <p>Click the microphone to start recording your answer</p>
+                              <p>
+                                Click the microphone to start recording your
+                                answer
+                              </p>
 
-                              {/* Add mic test button when not recording */}
+                            
                               <Button
                                 onClick={async () => {
                                   try {
-                                    await navigator.mediaDevices.getUserMedia({ audio: true });
-                                    toast.success("Microphone access granted!", {
-                                      description: "You're all set to record your answers."
+                                    await navigator.mediaDevices.getUserMedia({
+                                      audio: true,
                                     });
+                                    toast.success(
+                                      "Microphone access granted!",
+                                      {
+                                        description:
+                                          "You're all set to record your answers.",
+                                      }
+                                    );
                                   } catch (err) {
                                     setPermissionDenied(true);
                                     toast.error("Microphone access denied", {
-                                      description: "Please check your browser permissions and try again."
+                                      description:
+                                        "Please check your browser permissions and try again.",
                                     });
                                   }
                                 }}
@@ -595,14 +749,15 @@ function InterviewContent() {
 
                           {isRecording && (
                             <div className="text-sm text-slate-400">
-                              Click the stop button when you've finished your answer
+                              Click the stop button when you've finished your
+                              answer
                             </div>
                           )}
                         </>
                       )}
                     </div>
 
-                    {/* Add LiveTranscription component */}
+                  
                     {!permissionDenied && (
                       <LiveTranscription
                         isRecording={isRecording}
@@ -614,7 +769,7 @@ function InterviewContent() {
               </motion.div>
             )}
 
-            {/* Results Screen - Now handles both processing and completed states */}
+
             {(state === "processingAnswers" || state === "completed") && (
               <InterviewResult
                 results={results}
@@ -631,7 +786,7 @@ function InterviewContent() {
   );
 }
 
-// Loading fallback component
+
 function InterviewLoading() {
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 relative overflow-hidden mt-30">
@@ -647,7 +802,7 @@ function InterviewLoading() {
   );
 }
 
-// Main component with Suspense wrapper
+
 export default function InterviewPage() {
   return (
     <Suspense fallback={<InterviewLoading />}>
